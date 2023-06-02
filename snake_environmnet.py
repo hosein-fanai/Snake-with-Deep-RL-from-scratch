@@ -21,7 +21,7 @@ class SnakeEnvironment(Snake):
         reward = 0
 
         if info["life"] < self.prev_info["life"]:
-            reward -= 500
+            reward -= 5_000
 
         reward += 1 * (info["score"] - self.prev_info["score"])
 

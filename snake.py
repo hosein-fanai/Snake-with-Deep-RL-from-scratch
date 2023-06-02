@@ -60,6 +60,7 @@ class Snake:
 
     def _move_to_direc(self):
         self.snake[0].direction = self.direc
+
         for snake_body in self.snake:
             i, j = snake_body.coords
 
@@ -75,7 +76,7 @@ class Snake:
             i, j = i%self.arr.shape[0], j%self.arr.shape[1]
 
             snake_body.coords = (i, j)
-            
+
         self._render_snake_on_display()
 
         return self.snake[0].coords
@@ -158,7 +159,9 @@ class Snake:
             case 'down':
                 i-=1
 
+        i, j = i%self.arr.shape[0], j%self.arr.shape[1]
         self.snake.append(SnakeBody(direction=direc, coords=(i, j)))
+
         self._render_snake_on_display()
 
     def _render_snake_on_display(self):
@@ -168,10 +171,12 @@ class Snake:
                     self.arr[i, j] = 0
 
         self.arr[self.snake[0].coords] = 1 # Head
+
         if len(self.snake) > 1:
             self.arr[self.snake[-1].coords] = 3 # Tail
+
         for snake_body in self.snake[1: -1]:
-            self.arr[snake_body.coords] = 2
+            self.arr[snake_body.coords] = 2 # Body
 
     def _print_display(self, fps, mode='on_going'):
         os.system('cls')
@@ -198,7 +203,7 @@ class Snake:
                         print(snake, end='')
                     elif self.arr[i, j] == 2: # Snake's body
                         print('=', end='')
-                    elif self.arr[i, j] == 3: # Snake's tale
+                    elif self.arr[i, j] == 3: # Snake's tail
                         print(',', end='')
                     elif self.arr[i, j] == 4: # Food
                         print('F', end='')
