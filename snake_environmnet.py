@@ -53,8 +53,26 @@ class SnakeEnvironment(Snake):
             done = True
 
         self.prev_info = info
-        
-        return self.arr.copy(), reward, done, info
+
+        state = self.arr.copy()
+
+        # if self.return_full_state:
+        #     match info["head direction"]:
+        #         case "right":
+        #             direc = 0
+        #         case "left":
+        #             direc = 1
+        #         case "up":
+        #             direc = 2
+        #         case "down":
+        #             direc = 3
+
+        #     column = np.zeros((self.size, 1), dtype="uint8")
+        #     column[0, 0] = direc
+
+        #     state = np.concatenate([state, column], axis=-1)
+
+        return state, reward, done, info
 
     def render(self, mode="rgb_array"):
         if mode == "rgb_array":
