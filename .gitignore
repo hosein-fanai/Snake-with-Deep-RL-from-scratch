@@ -1,3 +1,6 @@
 __pycache__
 
+models/*/
 DQN_*.h5
+
+rl videos

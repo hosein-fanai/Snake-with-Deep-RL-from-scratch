@@ -21,8 +21,8 @@ class SnakeGymEnvironment(gym.Env):
     def step(self, action):
         return self.game.step(action)
 
-    def render(self):
-        return self.game.render()
+    def render(self, mode="human"):
+        return self.game.render(mode)
 
     def reset(self):
         return self.game.reset()

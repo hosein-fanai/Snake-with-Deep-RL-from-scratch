@@ -1,4 +1,8 @@
+import pygame
+
 from snake import Snake
+
+import numpy as np
 
 import random
 
@@ -20,8 +24,8 @@ class SnakeEnvironment(Snake):
     def _reward_func(self, info):
         reward = 0
 
-        if info["life"] < self.prev_info["life"]:
-            reward -= 5_000
+        # if info["life"] < self.prev_info["life"]:
+        #     reward -= 5_000
 
         reward += 1 * (info["score"] - self.prev_info["score"])
 
@@ -47,13 +51,18 @@ class SnakeEnvironment(Snake):
 
         if self.life < 1:
             done = True
+
+        self.prev_info = info
         
         return self.arr.copy(), reward, done, info
 
-    def render(self):
-        self._print_display(0)
-
-        return self.arr.copy()
+    def render(self, mode="rgb_array"):
+        if mode == "rgb_array":
+            self._update_screen()
+            return np.transpose(pygame.surfarray.array3d(self.screen), (1, 0, 2))
+        elif mode == "print":
+            self._print_display(0)
+            return self.arr.copy()
 
     def reset(self):
         self.reset_game()
@@ -64,6 +73,8 @@ class SnakeEnvironment(Snake):
 
     def close(self):
         self.arr = None
+        
+        pygame.quit()
 
 
 if __name__ == "__main__":
@@ -77,7 +88,7 @@ if __name__ == "__main__":
         action = random.randint(0, 4)
         state, reward, done, info = env.step(action)
 
-        # env.render()
+        env.render()
 
         frames += 1
         if frames > 1000:
