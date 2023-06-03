@@ -1,3 +1,5 @@
+import pygame
+
 from snake_body import SnakeBody
 
 import numpy as np
@@ -15,12 +17,29 @@ class Snake:
     epsilon = 1e-5
     frame_time = 0.4
 
-    def __init__(self, size):
+    def __init__(self, size, pygame_mode=True):
+        pygame.init()
+
         self.size = size
+        self.multiplier = 30
+
+        if pygame_mode:
+            self.run = self.run2
+
+            self.screen = pygame.display.set_mode((self.size*self.multiplier, self.size*self.multiplier+50))
+            self.screen_rect = self.screen.get_rect()
+            self.screen_dims = self.screen_rect.size
+
+            self.clock = pygame.time.Clock()
+            self.font = pygame.font.SysFont(None, 50)
+
+            pygame.display.set_caption("Snake")
+        else:
+            self.run = self.run1
 
         self.reset_game()
 
-    def run(self):
+    def run1(self):
         fps = 0
         frames = 0
         start = time.time()
@@ -40,6 +59,17 @@ class Snake:
             frames += 1
             fps = int(frames // (time.time() - start + self.epsilon))
 
+    def run2(self):
+        while True:
+            self._check_events()
+            
+            if self.life >= 1:
+                self._move_to_key()
+            
+            self._update_screen()
+
+            self.clock.tick(1/self.frame_time)
+
     def reset_game(self):
         self.arr = np.zeros((self.size, self.size), dtype='uint8') # Or dtype=np.string
         self.arr[self.size//2, self.size//2] = 1
@@ -54,6 +84,65 @@ class Snake:
         self.snake = [SnakeBody()] # Snake's head
         self.snake[0].direction = self.direc
         self.snake[0].coords = (self.size//2, self.size//2)
+
+    def _check_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.KEYDOWN:
+                match event.key:
+                    case pygame.K_a:
+                        self.key = 'a'
+                    case pygame.K_d:
+                        self.key = 'd'
+                    case pygame.K_w:
+                        self.key = 'w'
+                    case pygame.K_s:
+                        self.key = 's'
+                    case _:
+                        self.key = None
+
+    def _update_screen(self):
+        self.screen.fill((200, 200, 200))
+
+        for i in range(self.arr.shape[0]):
+            for j in range(self.arr.shape[1]):
+                cell_type = self.arr[i, j]
+                if cell_type == 0:
+                    continue
+                elif cell_type == 1:
+                    pygame.draw.rect(self.screen, (97, 2, 2), 
+                                (j*self.multiplier, i*self.multiplier, self.multiplier, self.multiplier))
+                elif cell_type == 2:
+                    pygame.draw.rect(self.screen, (0, 0, 255), 
+                                (j*self.multiplier, i*self.multiplier, self.multiplier, self.multiplier))
+                elif cell_type == 3:
+                    pygame.draw.rect(self.screen, (0, 255, 255), 
+                                (j*self.multiplier, i*self.multiplier, self.multiplier, self.multiplier))
+                elif cell_type == 4:
+                    pygame.draw.rect(self.screen, (0, 255, 0), 
+                                (j*self.multiplier, i*self.multiplier, self.multiplier, self.multiplier))
+
+        for i in range(self.size+1):
+            pygame.draw.line(self.screen, (0, 0, 0), (0, i*self.multiplier), (self.screen_dims[0], i*self.multiplier))
+            pygame.draw.line(self.screen, (0, 0, 0), (i*self.multiplier, 0), (i*self.multiplier, self.screen_dims[0]))
+
+        score_txt = self.font.render(f"Score: {self.score}", True, (0, 0, 0), (200, 200, 200))
+        score_rect = score_txt.get_rect()
+        score_rect.bottomleft = self.screen_rect.bottomleft
+        self.screen.blit(score_txt, score_rect)
+
+        if self.life < 1:
+            text = self.font.render("Game Over", True, (0, 0, 0), (200, 200, 200))
+            text_rect = text.get_rect()
+            text_rect.center = self.screen_rect.center
+            
+            self.screen.blit(text, text_rect)
+
+        # self._print_display(0)
+
+        pygame.display.flip()
 
     def _get_input_key(self):
         self.key = msvcrt.getch().decode().lower()
@@ -105,8 +194,6 @@ class Snake:
                     self.direc = 'down'
             case None:
                 pass
-            # case _: # Do nothing
-            #     return
 
         prev_arr = self.arr.copy()
 
@@ -117,6 +204,8 @@ class Snake:
         if ate_food:
             self._add_food()
             self._add_to_body()
+
+        self.key = None
 
     def _backprop_direc(self):
         prev_direc = self.snake[0].direction
