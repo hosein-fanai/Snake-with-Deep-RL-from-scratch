@@ -77,7 +77,7 @@ class Snake:
         self._add_food()
 
         self.key = None
-        self.direc = 'right' # Direction
+        self.direc = np.random.choice(['right', 'left', 'up', 'down']) # Direction
         self.score = 0
         self.life = 1
 
