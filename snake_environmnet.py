@@ -11,8 +11,9 @@ import time
 
 class SnakeEnvironment(Snake):
 
-    def __init__(self, size=15):
+    def __init__(self, size=15, return_full_state=False):
         super().__init__(size=size)
+        self.return_full_state = return_full_state
 
     def _get_info(self):
         return {
@@ -24,10 +25,12 @@ class SnakeEnvironment(Snake):
     def _reward_func(self, info):
         reward = 0
 
-        # if info["life"] < self.prev_info["life"]:
-        #     reward -= 5_000
+        reward -= 0.1
 
-        reward += 1 * (info["score"] - self.prev_info["score"])
+        reward += 20 * (info["score"] - self.prev_info["score"])
+        
+        if info["life"] < self.prev_info["life"]:
+            reward -= 50
 
         return reward
 
@@ -56,22 +59,23 @@ class SnakeEnvironment(Snake):
 
         state = self.arr.copy()
 
-        # if self.return_full_state:
-        #     match info["head direction"]:
-        #         case "right":
-        #             direc = 0
-        #         case "left":
-        #             direc = 1
-        #         case "up":
-        #             direc = 2
-        #         case "down":
-        #             direc = 3
+        if self.return_full_state:
+            match info["head direction"]:
+                case "right":
+                    direc = 0
+                case "left":
+                    direc = 1
+                case "up":
+                    direc = 2
+                case "down":
+                    direc = 3
+                    
+            state = {
+                "direc": direc,
+                "board": state,
+            }
 
-        #     column = np.zeros((self.size, 1), dtype="uint8")
-        #     column[0, 0] = direc
-
-        #     state = np.concatenate([state, column], axis=-1)
-
+        
         return state, reward, done, info
 
     def render(self, mode="rgb_array"):

@@ -1,6 +1,10 @@
 __pycache__
 
+.ipynb_checkpoints
+
 models/*/
 DQN_*.h5
 
 rl videos
+
+logs

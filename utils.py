@@ -23,3 +23,38 @@ class SnakeGymEnvironment(gym.Env):
 
     def close(self):
         self.game.close()
+        
+
+class MaxStepsWrapper(gym.Wrapper):
+        
+    def __init__(self, env, max_steps):
+        super().__init__(env)
+        self.max_steps = max_steps
+
+        self.current_step = 0
+
+    def reset(self, **kwargs):
+        self.current_step = 0
+
+        return self.env.reset(**kwargs)
+
+    def step(self, action):
+        self.current_step += 1
+        
+        truncate = False
+        if self.current_step > self.max_steps:
+            truncate = True
+
+        state, reward, done, info = self.env.step(action)
+        done = done or truncate
+        
+        return state, reward, done, info
+    
+    
+def make_env(size=10, return_full_state=False, max_step=0):
+    env = SnakeGymEnvironment(size=size, return_full_state=return_full_state)
+    
+    if max_step:
+        env = MaxStepsWrapper(env, max_step)
+    
+    return env
