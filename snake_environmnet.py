@@ -71,11 +71,10 @@ class SnakeEnvironment(Snake):
                     direc = 3
                     
             state = {
-                "direc": direc,
+                "direc": np.array(direc),
                 "board": state,
             }
 
-        
         return state, reward, done, info
 
     def render(self, mode="rgb_array"):
@@ -91,7 +90,25 @@ class SnakeEnvironment(Snake):
 
         self.prev_info = self._get_info()
 
-        return self.arr.copy()
+        state = self.arr.copy()
+
+        if self.return_full_state:
+            match self.prev_info["head direction"]:
+                case "right":
+                    direc = 0
+                case "left":
+                    direc = 1
+                case "up":
+                    direc = 2
+                case "down":
+                    direc = 3
+                    
+            state = {
+                "direc": np.array(direc),
+                "board": state,
+            }
+
+        return state
 
     def close(self):
         self.arr = None

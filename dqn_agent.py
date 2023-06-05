@@ -17,12 +17,26 @@ class DQNAgent:
 
         self.action_space_num = self.env.action_space.n
 
+        if self.env.game.return_full_state:
+            self._sample_experiences = self._sample_experiences2
+        else:
+            self._sample_experiences = self._sample_experiences1
+
     def epsilon_greedy_policy(self, state, epsilon=0):
         if np.random.rand() < epsilon:
             return self.env.action_space.sample()
         else:
-            Q_values = self.model(state[None])
+            state = {"direc": state["direc"][None], "board":state["board"][None]} if self.env.game.return_full_state else state[None]
+
+            Q_values = self.model(state)
             return tf.argmax(Q_values[0])
+
+    def sample_action(self, state):
+        Q_values = self.model(state[None])
+        logits = tf.math.log(Q_values + tf.epsilon())
+        action = tf.random.categorical(logits, num_samples=1)[0]
+
+        return action
 
     def _play_one_step(self, state, epsilon=0.01):
         action = self.epsilon_greedy_policy(state, epsilon)
@@ -48,7 +62,13 @@ class DQNAgent:
         
         return total_reward, step, fps
 
-    def _sample_experiences(self, batch_size):
+    def _func1(self, i):
+        index = np.random.randint(len(self.replay_buffer), size=1)[0]
+        exp = self.replay_buffer[index]
+
+        return exp
+
+    def _sample_experiences1(self, batch_size):
         indices = np.random.randint(len(self.replay_buffer), size=batch_size)
         batch = [self.replay_buffer[index] for index in indices]
         states, actions, rewards, next_states, dones = [
@@ -56,6 +76,13 @@ class DQNAgent:
         ]
 
         return states, actions, rewards, next_states, dones
+
+    def _sample_experiences2(self, batch_size):
+        dataset = tf.data.Dataset.from_tensor_slices(range(batch_size))
+        dataset = dataset.map(self._func1, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.batch(batch_size)
+
+        return next(iter(dataset))
 
     @tf.function
     def _train_step(self, batch_size, gamma):
@@ -68,7 +95,7 @@ class DQNAgent:
 
         next_best_Q_values = tf.reduce_sum(self.target(next_states) * next_mask, axis=1)
 
-        target_Q_values = rewards + (1 - dones) * gamma * next_best_Q_values
+        target_Q_values = rewards + (1.0 - tf.cast(dones, tf.float32)) * gamma * next_best_Q_values
         target_Q_values = tf.reshape(target_Q_values, (-1, 1))
 
         mask = tf.one_hot(actions, depth=self.action_space_num)
