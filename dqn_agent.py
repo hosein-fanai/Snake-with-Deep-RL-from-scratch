@@ -32,8 +32,10 @@ class DQNAgent:
             return tf.argmax(Q_values[0])
 
     def sample_action(self, state):
-        Q_values = self.model(state[None])
-        logits = tf.math.log(Q_values + tf.epsilon())
+        state = {"direc": state["direc"][None], "board":state["board"][None]} if self.env.game.return_full_state else state[None]
+
+        Q_values = self.model(state)
+        logits = tf.math.log(Q_values + tf.keras.backend.epsilon())
         action = tf.random.categorical(logits, num_samples=1)[0]
 
         return action
