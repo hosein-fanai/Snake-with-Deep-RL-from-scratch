@@ -31,11 +31,11 @@ class DQNAgent:
             Q_values = self.model(state)
             return tf.argmax(Q_values[0])
 
-    def sample_action(self, state):
+    def boltzman_sampling(self, state, tau=1.):
         state = {"direc": state["direc"][None], "board":state["board"][None]} if self.env.game.return_full_state else state[None]
 
         Q_values = self.model(state)
-        logits = tf.math.log(Q_values + tf.keras.backend.epsilon())
+        logits = tf.math.log(tf.nn.softmax(Q_values/tau) + tf.keras.backend.epsilon())
         action = tf.random.categorical(logits, num_samples=1)[0]
 
         return action

@@ -16,21 +16,50 @@ class SnakeEnvironment(Snake):
         self.return_full_state = return_full_state
 
     def _get_info(self):
+        head_pos = np.where(self.arr == 1)
+        food_pos = np.where(self.arr == 4)
+        head_food_dist = np.abs(head_pos[0] - food_pos[0]) + np.abs(head_pos[1] - food_pos[1])
+
         return {
             "score": self.score,
             "life": self.life,
-            "head direction": self.direc
+            "head direction": self.direc,
+            "head food dist": head_food_dist,
+            "head pos": head_pos
         }
+
+    # def _reward_func(self, info):
+    #     reward = 0
+
+    #     reward -= 0.1
+
+    #     reward += 20 * (info["score"] - self.prev_info["score"])
+        
+    #     if info["life"] < self.prev_info["life"]:
+    #         reward -= 50
+
+    #     return reward
 
     def _reward_func(self, info):
         reward = 0
 
+        if info["head food dist"] < self.prev_info["head food dist"]:
+            reward += 1
+        else:
+            reward -= 1
+
+        if (self.prev_info["head pos"][0] == self.size-1 and info["head pos"][0] == 0) or (
+            self.prev_info["head pos"][1] == self.size-1 and info["head pos"][1] == 0) or (
+            self.prev_info["head pos"][0] == 0 and info["head pos"][1] == self.size-1) or (
+            self.prev_info["head pos"][1] == 0 and info["head pos"][1] == self.size-1):
+            reward -= 5
+
         reward -= 0.1
 
-        reward += 20 * (info["score"] - self.prev_info["score"])
+        reward += 10 * (info["score"] - self.prev_info["score"])
         
         if info["life"] < self.prev_info["life"]:
-            reward -= 50
+            reward -= 10
 
         return reward
 
@@ -127,7 +156,7 @@ if __name__ == "__main__":
         action = random.randint(0, 4)
         state, reward, done, info = env.step(action)
 
-        env.render()
+        env.render("rgb_array")
 
         frames += 1
         if frames > 1000:
