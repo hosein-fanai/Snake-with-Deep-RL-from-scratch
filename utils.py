@@ -1,6 +1,7 @@
 from snake_environmnet import SnakeEnvironment
 
 import gym
+from gym.wrappers import FrameStack
 
 
 class SnakeGymEnvironment(gym.Env):
@@ -51,10 +52,13 @@ class MaxStepsWrapper(gym.Wrapper):
         return state, reward, done, info
     
     
-def make_env(size=10, return_full_state=False, max_step=0):
+def make_env(size=10, return_full_state=False, max_step=0, num_stack=0):
     env = SnakeGymEnvironment(size=size, return_full_state=return_full_state)
     
     if max_step:
         env = MaxStepsWrapper(env, max_step)
     
+    if num_stack:
+        env = FrameStack(env, num_stack=4)
+
     return env
