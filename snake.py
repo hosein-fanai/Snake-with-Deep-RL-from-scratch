@@ -18,15 +18,18 @@ class Snake:
     frame_time = 0.4
 
     def __init__(self, size, pygame_mode=True):
-        pygame.init()
-
         self.size = size
         self.multiplier = 30
 
         if pygame_mode:
+            pygame.init()
+
             self.run = self.run2
 
-            self.screen = pygame.display.set_mode((self.size*self.multiplier, self.size*self.multiplier+50))
+            self.screen = pygame.display.set_mode(
+                size=(self.size*self.multiplier, self.size*self.multiplier+50), 
+                # flags=pygame.RESIZABLE
+            )
             self.screen_rect = self.screen.get_rect()
             self.screen_dims = self.screen_rect.size
 
@@ -202,8 +205,8 @@ class Snake:
         self._backprop_direc()
 
         if ate_food:
-            self._add_food()
             self._add_to_body()
+            self._add_food()
 
         self.key = None
 
@@ -228,8 +231,9 @@ class Snake:
             return True # ate food
 
     def _add_food(self): # Could be written in a better way
-        while True:
+        while np.where(self.arr == 0):
             a, b = np.random.randint(0, high=self.size, size=(2,))
+
             if self.arr[a, b] == 0:
                 self.arr[a, b] = 4 # Food
                 break
