@@ -103,6 +103,9 @@ class Snake:
                         self.key = 'w'
                     case pygame.K_s:
                         self.key = 's'
+                    case pygame.K_SPACE:
+                        if self.life < 1:
+                            self.reset_game()
                     case _:
                         self.key = None
 
@@ -230,7 +233,7 @@ class Snake:
             self.score += 1
             return True # ate food
 
-    def _add_food(self): # Could be written in a better way
+    def _add_food(self):
         while np.where(self.arr == 0):
             a, b = np.random.randint(0, high=self.size, size=(2,))
 
