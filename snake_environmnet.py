@@ -25,43 +25,35 @@ class SnakeEnvironment(Snake):
             "life": self.life,
             "head direction": self.direc,
             "head food dist": head_food_dist,
-            "head pos": head_pos
+            "head pos": head_pos,
+            "size": self.size,
         }
 
-    # def _reward_func(self, info):
-    #     reward = 0
-
-    #     reward -= 0.1
-
-    #     reward += 20 * (info["score"] - self.prev_info["score"])
-        
-    #     if info["life"] < self.prev_info["life"]:
-    #         reward -= 50
-
-    #     return reward
-
-    def _reward_func(self, info):
+    def _reward_func(self, info, prev_info):
         reward = 0
 
-        if info["head food dist"] < self.prev_info["head food dist"]:
-            reward += 1
-        else:
+        # if info["head food dist"] < prev_info["head food dist"]:
+        #     reward += 0.2
+        # else:
+        #     reward -= 0.1
+
+        # if (prev_info["head pos"][0] == info["size"]-1 and info["head pos"][0] == 0) or (
+        #     prev_info["head pos"][1] == info["size"]-1 and info["head pos"][1] == 0) or (
+        #     prev_info["head pos"][0] == 0 and info["head pos"][0] == info["size"]-1) or (
+        #     prev_info["head pos"][1] == 0 and info["head pos"][1] == info["size"]-1):
+        #     reward -= 1
+
+        # reward -= 0.1
+
+        reward += 1 * (info["score"] - prev_info["score"])
+        
+        if info["life"] < prev_info["life"]:
             reward -= 1
 
-        if (self.prev_info["head pos"][0] == self.size-1 and info["head pos"][0] == 0) or (
-            self.prev_info["head pos"][1] == self.size-1 and info["head pos"][1] == 0) or (
-            self.prev_info["head pos"][0] == 0 and info["head pos"][1] == self.size-1) or (
-            self.prev_info["head pos"][1] == 0 and info["head pos"][1] == self.size-1):
-            reward -= 5
-
-        reward -= 0.1
-
-        reward += 10 * (info["score"] - self.prev_info["score"])
-        
-        if info["life"] < self.prev_info["life"]:
-            reward -= 10
-
         return reward
+
+    def compute_reward(self, info):
+        return self._reward_func(info, self.prev_info)
 
     def step(self, action):
         match action:
@@ -78,7 +70,7 @@ class SnakeEnvironment(Snake):
         self._move_to_key()
         
         info = self._get_info()
-        reward = self._reward_func(info)
+        reward = self.compute_reward(info)
         done = False
 
         if self.life < 1:
@@ -146,21 +138,30 @@ class SnakeEnvironment(Snake):
 
 
 if __name__ == "__main__":
-    env = SnakeEnvironment()
+    env = SnakeEnvironment(size=10)
+
     state = env.reset()
 
     done = False
+    rewards = 0
+
     frames = 0
     start = time.time()
     while not done:
         action = random.randint(0, 4)
+        # action = int(input())
         state, reward, done, info = env.step(action)
+
+        rewards += reward
+        print(rewards, reward)
 
         env.render("rgb_array")
 
         frames += 1
         if frames > 1000:
             break
+
+        # env.clock.tick(10)
 
     fps = frames // (time.time() - start)
     print(f"FPS: {fps}")
