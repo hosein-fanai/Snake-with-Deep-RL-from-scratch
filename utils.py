@@ -52,8 +52,11 @@ class MaxStepsWrapper(gym.Wrapper):
         return state, reward, done, info
     
     
-def make_env(size=10, return_full_state=False, max_step=0, num_stack=0):
+def make_env(size=10, env_rwd_func=None, return_full_state=False, max_step=0, num_stack=0):
     env = SnakeGymEnvironment(size=size, return_full_state=return_full_state)
+
+    if env_rwd_func:
+        env.game._reward_func = env_rwd_func
     
     if max_step:
         env = MaxStepsWrapper(env, max_step)
