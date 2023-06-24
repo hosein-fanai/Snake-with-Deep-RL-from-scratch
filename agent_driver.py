@@ -1,6 +1,6 @@
-from tensorflow.keras import models
+from dqn_agent import DQNAgent
 
-from utils import SnakeGymEnvironment, DQNAgent
+from utils import SnakeGymEnvironment
 
 import sys
 
@@ -15,8 +15,8 @@ if __name__ == "__main__":
 
     env = SnakeGymEnvironment()
 
-    model = models.load_model(model_path)
-    agent = DQNAgent(env, model, None, None, None, None)
+    agent = DQNAgent(env, None, None, None, None, None)
+    agent.load_model(model_path)
     
     state = env.reset()
     done = False

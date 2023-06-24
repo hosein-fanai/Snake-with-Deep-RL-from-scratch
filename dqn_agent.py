@@ -1,4 +1,7 @@
-import tensorflow as tf
+try:
+    import tensorflow as tf
+except:
+    print("Please install tensorflow by: pip install tensorflow==2.10")
 
 import numpy as np
 
@@ -22,17 +25,27 @@ class DQNAgent:
         else:
             self._sample_experiences = self._sample_experiences1
 
-    def epsilon_greedy_policy(self, state, epsilon=0):
+        self._current_rwd = 0
+        self._total_rwds = []
+
+    def load_model(self, model_path):
+        self.model = tf.keras.models.load_model(model_path)
+        if self.model:
+            print("New Model Loaded from", model_path)
+        else:
+            print("Model load failed.")
+
+    def epsilon_greedy_policy(self, state, epsilon=0.):
         if np.random.rand() < epsilon:
             return self.env.action_space.sample()
         else:
-            state = {"direc": state["direc"][None], "board":state["board"][None]} if self.env.game.return_full_state else state[None]
+            state = {"direc": state["direc"][np.newaxis], "board":state["board"][np.newaxis]} if self.env.game.return_full_state else np.array(state)[np.newaxis]
 
             Q_values = self.model(state)
             return tf.argmax(Q_values[0])
 
-    def boltzman_sampling(self, state, tau=1.):
-        state = {"direc": state["direc"][None], "board":state["board"][None]} if self.env.game.return_full_state else state[None]
+    def boltzman_sampling_policy(self, state, tau=1.):
+        state = {"direc": state["direc"][np.newaxis], "board":state["board"][np.newaxis]} if self.env.game.return_full_state else np.array(state)[np.newaxis]
 
         Q_values = self.model(state)
         logits = tf.math.log(tf.nn.softmax(Q_values/tau) + tf.keras.backend.epsilon())
@@ -48,21 +61,48 @@ class DQNAgent:
 
         return next_state, reward, done, info
 
-    def _play_multiple_steps(self, n_step, epsilon):
+    def _play_single_episode(self, max_step, epsilon):
         obs = self.env.reset()
-        total_reward = 0
+        self._current_rwd = 0
+
+        frames = 0
+        start = time.time()
+        for step in range(max_step):
+            obs, reward, done, _ = self._play_one_step(obs, epsilon)
+            self._current_rwd += reward
+
+            if done:
+                break
+            
+            frames += 1
+        fps = int(frames // (time.time() - start))
+
+        self._total_rwds.append(self._current_rwd)
+        self._episode_count += 1
+
+        return step+1, fps
+
+    def _play_multiple_steps(self, n_step, epsilon):
+        obs = self._prev_obs
 
         frames = 0
         start = time.time()
         for step in range(n_step):
             obs, reward, done, _ = self._play_one_step(obs, epsilon)
-            total_reward += reward
+            self._current_rwd += reward
+
             if done:
-                break
+                self._total_rwds.append(self._current_rwd)
+                self._current_rwd = 0
+                self._episode_count += 1
+                obs = self.env.reset()
+
             frames += 1
         fps = int(frames // (time.time() - start))
+
+        self._prev_obs = obs
         
-        return total_reward, step, fps
+        return step+1, fps
 
     def _func1(self, i):
         index = np.random.randint(len(self.replay_buffer), size=1)[0]
@@ -112,36 +152,43 @@ class DQNAgent:
 
         return loss
 
-    def training_loop(self, iteration, n_step=10_000, batch_size=64, gamma=0.99, 
-                    warmup=10, train_interval=1, target_update_interval=50, 
-                    soft_update=False, epsilon_fn=None):
-        func = lambda episode: max(1-episode/(iteration*0.9), 0.01)
+    def run_training(self, iteration, iter_type="step_wise", n_step=4, 
+                    batch_size=64, gamma=0.99, warmup=10, target_update_interval=5_000, 
+                    soft_update=False, epsilon_fn=None, epsilon_active_portion=0.75, 
+                    save_model_interval=50_000, save_model_reward_threshold=10):
+        func = lambda episode: max(1-episode/(iteration*epsilon_active_portion), 0.01)
         epsilon_fn = func if epsilon_fn is None else epsilon_fn
 
         best_score = float("-inf")
-        rewards = []
+        self._episode_count = 0
+        self._current_rwd = 0
+        self._total_rwds = []
         all_loss = []
 
         for episode in range(warmup):
-            _, step, fps = self._play_multiple_steps(n_step, 1.0)
+            step, fps = self._play_single_episode(1_000, 1.0)
 
             print(f"\r---Warmup---Episode: {episode}, Steps: {step}, FPS: {fps}", end="")
 
-        for episode in range(iteration):
-            epsilon = epsilon_fn(episode)
+        if iter_type == "step_wise":
+            collect_driver = self._play_multiple_steps
+            self._prev_obs = self.env.reset()
+        elif iter_type == "episode_wise":
+            collect_driver = self._play_single_episode
 
-            total_reward, step, fps = self._play_multiple_steps(n_step, epsilon)
-            rewards.append(total_reward)
+        for itr in range(0, iteration, n_step if iter_type=="step_wise" else 1):
+            epsilon = epsilon_fn(itr)
+            step, fps = collect_driver(n_step, epsilon)
 
-            if total_reward > best_score or total_reward > 5_000 or episode % 50_000 == 0:
-                self.model.save_weights(f"models/DQN_ep#{episode}_eps#{epsilon:.4f}_rw#{total_reward:.1f}.h5")
+            total_reward = self._total_rwds[-1] if len(self._total_rwds)>0 else self._current_rwd
+            if total_reward > best_score or total_reward > save_model_reward_threshold or itr % save_model_interval == 0:
+                self.model.save_weights(f"models/DQN_itr#{itr}_eps#{epsilon:.4f}_rw#{total_reward:.1f}.h5")
                 best_score = total_reward
 
-            if episode % train_interval == 0:
-                loss = self._train_step(batch_size, gamma)
+            loss = self._train_step(batch_size, gamma)
             all_loss.append(loss)
 
-            if episode % target_update_interval == 0:
+            if itr % target_update_interval == 0:
                 if not soft_update:
                     self.target.set_weights(self.model.get_weights())
                 else:
@@ -151,6 +198,6 @@ class DQNAgent:
                         target_weights[index] = 0.99 * target_weights[index] + 0.01 * online_weights[index]
                     self.target.set_weights(target_weights)
 
-            print(f"\rEpisode: {episode}, Steps: {step}, FPS: {fps}, Reward:{total_reward:.1f}, Epsilon: {epsilon:.4f}, Loss: {loss}", end="")
+            print(f"\rIteration: {itr}, Episode: {self._episode_count}, Steps per Episode: {step}, FPS: {fps}, Last Episode's Reward: {total_reward:.1f}, Epsilon: {epsilon:.4f}, Loss: {loss}", end="")
 
-        return rewards, all_loss
+        return self._total_rwds, all_loss
