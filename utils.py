@@ -52,6 +52,67 @@ class MaxStepsWrapper(gym.Wrapper):
         return state, reward, done, info
     
     
+def rwd_func_1(info, prev_info):
+    reward = 0
+
+    reward += 1 * (info["score"] - prev_info["score"])
+
+    return reward
+
+def rwd_func_2(info, prev_info):
+    reward = 0
+
+    reward -= 0.1
+
+    reward += 1.1 * (info["score"] - prev_info["score"])
+    
+    if info["life"] < prev_info["life"]:
+        reward -= 0.9
+
+    return reward
+
+def rwd_func_3(info, prev_info):
+    reward = 0
+
+    if (prev_info["head pos"][0] == info["size"]-1 and info["head pos"][0] == 0) or (
+        prev_info["head pos"][1] == info["size"]-1 and info["head pos"][1] == 0) or (
+        prev_info["head pos"][0] == 0 and info["head pos"][0] == info["size"]-1) or (
+        prev_info["head pos"][1] == 0 and info["head pos"][1] == info["size"]-1):
+        reward -= 0.5
+
+    reward -= 0.1
+
+    reward += 1.1 * (info["score"] - prev_info["score"])
+    
+    if info["life"] < prev_info["life"]:
+        reward -= 0.9
+
+    return reward
+
+def rwd_func_4(info, prev_info):
+    reward = 0
+
+    if info["head food dist"] < prev_info["head food dist"]:
+        reward += 0.2
+    else:
+        reward -= 0.1
+
+    if (prev_info["head pos"][0] == info["size"]-1 and info["head pos"][0] == 0) or (
+        prev_info["head pos"][1] == info["size"]-1 and info["head pos"][1] == 0) or (
+        prev_info["head pos"][0] == 0 and info["head pos"][0] == info["size"]-1) or (
+        prev_info["head pos"][1] == 0 and info["head pos"][1] == info["size"]-1):
+        reward -= 0.5
+
+    reward -= 0.1
+
+    reward += 1.1 * (info["score"] - prev_info["score"])
+    
+    if info["life"] < prev_info["life"]:
+        reward -= 0.9
+
+    return reward
+
+
 def make_env(size=10, env_rwd_func=None, return_full_state=False, max_step=0, num_stack=0):
     env = SnakeGymEnvironment(size=size, return_full_state=return_full_state)
 
