@@ -137,7 +137,7 @@ class DQNAgent:
 
         next_best_Q_values = tf.reduce_sum(self.target(next_states) * next_mask, axis=1)
 
-        target_Q_values = rewards + (1.0 - tf.cast(dones, tf.float32)) * gamma * next_best_Q_values
+        target_Q_values = tf.cast(rewards, tf.float32) + (1.0 - tf.cast(dones, tf.float32)) * gamma * next_best_Q_values
         target_Q_values = tf.reshape(target_Q_values, (-1, 1))
 
         mask = tf.one_hot(actions, depth=self.action_space_num)
